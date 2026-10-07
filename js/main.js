@@ -176,19 +176,76 @@ $('.phone__snd').addEventListener('click', e => { const v = e.currentTarget.prev
 /* ---------- planes → WhatsApp ---------- */
 $$('[data-wa]').forEach(a => { a.href = WA + encodeURIComponent(`¡Hola Naty! Vengo de tu web y me interesa el plan ${a.dataset.wa}. ¿Me cuentas cómo empezar?`); a.target = '_blank'; a.rel = 'noopener'; });
 
-/* ---------- mariposas que siguen al cursor ---------- */
-if (fine && !matchMedia('(prefers-reduced-motion:reduce)').matches) {
-  let last = 0, alive = 0;
+/* ---------- cursor mariposa que cambia de color + estallido al pulsar ---------- */
+const still = matchMedia('(prefers-reduced-motion:reduce)').matches;
+let hue = 205; // empieza en el azul de su logo
+const miniFly = (x, y, h) => {
+  const m = document.createElementNS(NS, 'svg'); m.setAttribute('viewBox', '0 0 400 400'); m.setAttribute('class', 'mini');
+  m.innerHTML = '<use href="#bfly"/>'; m.style.fill = `hsl(${h} 92% 60%)`; document.body.appendChild(m);
+  gsap.set(m, { x: x - 11, y: y - 11 });
+  return m;
+};
+// estallido: anillo de color + mariposas que salen volando en todas direcciones
+function burst(x, y) {
+  const ring = document.createElement('span'); ring.className = 'fly-ring';
+  ring.style.borderColor = `hsl(${hue} 92% 60%)`; document.body.appendChild(ring);
+  gsap.set(ring, { x: x - 30, y: y - 30, scale: .2 });
+  gsap.to(ring, { scale: 2.6, opacity: 0, duration: .7, ease: 'expo.out', onComplete: () => ring.remove() });
+  const n = 10;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + gsap.utils.random(-.25, .25), d = gsap.utils.random(70, 140);
+    const m = miniFly(x, y, (hue + i * 36) % 360);
+    gsap.set(m, { scale: .2, rotation: (a * 180 / Math.PI) + 90 });
+    gsap.timeline({ onComplete: () => m.remove() })
+      .to(m, { x: `+=${Math.cos(a) * d}`, y: `+=${Math.sin(a) * d - 30}`, scale: gsap.utils.random(.7, 1.15), duration: .9, ease: 'expo.out' })
+      .to(m, { opacity: 0, y: '-=40', duration: .6, ease: 'power1.in' }, '-=.35')
+      .to(m, { scaleX: .15, duration: .09, yoyo: true, repeat: 9, ease: 'sine.inOut' }, 0);
+  }
+}
+if (!still) addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') burst(e.clientX, e.clientY); });
+
+if (fine && !still) {
+  const fc = document.createElement('div'); fc.className = 'fly-cursor'; fc.setAttribute('aria-hidden', 'true');
+  fc.innerHTML = `<svg viewBox="0 0 400 400"><g class="fc__flap"><use href="#w-ul" class="fc__u"/><use href="#w-ur" class="fc__u"/><use href="#w-ll" class="fc__l"/><use href="#w-lr" class="fc__l"/></g><rect x="190" y="140" width="20" height="132" rx="10" class="fc__body"/><path d="M196 144 C186 112 172 96 158 90 M204 144 C214 112 228 96 242 90" class="fc__ant"/></svg>`;
+  document.body.appendChild(fc);
+  document.documentElement.classList.add('has-fly');
+  const xTo = gsap.quickTo(fc, 'x', { duration: .18, ease: 'power3' }), yTo = gsap.quickTo(fc, 'y', { duration: .18, ease: 'power3' });
+  const rTo = gsap.quickTo(fc, 'rotation', { duration: .4, ease: 'power3' });
+  const flap = gsap.to('.fc__flap', { scaleX: .35, duration: .16, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '200 200' });
+  let lx = 0, lastTrail = 0, alive = 0, speed = 0;
   addEventListener('pointermove', e => {
+    const dx = e.clientX - lx; lx = e.clientX;
+    xTo(e.clientX); yTo(e.clientY); rTo(gsap.utils.clamp(-28, 28, dx * 1.6));
+    speed = Math.min(1, speed + Math.abs(dx) / 60);
+    fc.style.opacity = 1;
+    // una pequeña estela de mariposas del mismo color
     const now = performance.now();
-    if (now - last < 140 || alive > 10) return; last = now; alive++;
-    const m = document.createElementNS(NS, 'svg'); m.setAttribute('viewBox', '0 0 400 400'); m.setAttribute('class', 'mini');
-    m.innerHTML = '<use href="#bfly"/>'; document.body.appendChild(m);
-    gsap.set(m, { x: e.clientX - 11, y: e.clientY - 11, scale: .3, rotation: gsap.utils.random(-30, 30) });
-    gsap.timeline({ onComplete: () => { m.remove(); alive--; } })
-      .to(m, { scale: gsap.utils.random(.6, 1.1), duration: .3 })
-      .to(m, { x: `+=${gsap.utils.random(-80, 80)}`, y: `-=${gsap.utils.random(60, 160)}`, opacity: 0, duration: gsap.utils.random(1.2, 2), ease: 'power1.out' }, '<')
-      .to(m, { scaleX: .2, duration: .12, yoyo: true, repeat: 9, ease: 'sine.inOut' }, '<');
+    if (now - lastTrail > 160 && alive < 8 && Math.abs(dx) > 3) {
+      lastTrail = now; alive++;
+      const m = miniFly(e.clientX, e.clientY, hue);
+      gsap.set(m, { scale: .3, rotation: gsap.utils.random(-30, 30) });
+      gsap.timeline({ onComplete: () => { m.remove(); alive--; } })
+        .to(m, { scale: gsap.utils.random(.5, .9), duration: .3 })
+        .to(m, { x: `+=${gsap.utils.random(-70, 70)}`, y: `-=${gsap.utils.random(50, 140)}`, opacity: 0, duration: gsap.utils.random(1.1, 1.8), ease: 'power1.out' }, '<')
+        .to(m, { scaleX: .2, duration: .12, yoyo: true, repeat: 9, ease: 'sine.inOut' }, '<');
+    }
+  });
+  document.addEventListener('pointerleave', () => { fc.style.opacity = 0; });
+  // el color gira sin parar y el aleteo se acelera cuando te mueves
+  gsap.ticker.add((t, dt) => {
+    hue = (hue + dt * .07) % 360;
+    fc.style.setProperty('--h', hue.toFixed(1));
+    speed *= .94;
+    flap.timeScale(.6 + speed * 2.2);
+  });
+  // más grande sobre lo que se puede pulsar
+  const hot = 'a, button, .mw, [role="button"]';
+  document.addEventListener('pointerover', e => { fc.classList.toggle('is-hot', !!e.target.closest(hot)); });
+  addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') gsap.to(fc, { scale: .7, duration: .12, ease: 'power2.out' }); });
+  addEventListener('pointerup', e => {
+    if (e.pointerType !== 'mouse') return;
+    gsap.fromTo(fc, { scale: .7 }, { scale: 1, duration: .7, ease: 'elastic.out(1.2,.35)' });
+    burst(e.clientX, e.clientY);
   });
 }
 

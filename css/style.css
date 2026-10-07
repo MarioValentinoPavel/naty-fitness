@@ -214,7 +214,16 @@ em{font-style:italic;font-weight:300}
 .foot{padding:1.4rem var(--pad);text-align:center;font-size:.85rem;color:var(--mute);background:var(--paper)}
 
 /* mariposas del cursor */
-.mini{position:fixed;left:0;top:0;width:22px;height:22px;pointer-events:none;z-index:80;fill:url(#iri)}
+.mini{position:fixed;left:0;top:0;width:22px;height:22px;pointer-events:none;z-index:9997;fill:url(#iri)}
+html.has-fly,html.has-fly *{cursor:none!important}
+.fly-cursor{--h:205;position:fixed;left:0;top:0;width:48px;height:48px;margin:-24px 0 0 -24px;pointer-events:none;z-index:9999;opacity:0;transition:opacity .2s}
+.fly-cursor svg{width:100%;height:100%;overflow:visible;transition:transform .35s cubic-bezier(.23,1,.32,1);filter:drop-shadow(0 3px 4px rgba(15,27,45,.35))}
+.fly-cursor.is-hot svg{transform:scale(1.5)}
+.fc__u{fill:hsl(var(--h) 92% 60%);stroke:#fff;stroke-width:16}
+.fc__l{fill:hsl(calc(var(--h) + 50) 92% 62%);stroke:#fff;stroke-width:16}
+.fc__body{fill:#0f1b2d;stroke:#fff;stroke-width:8}
+.fc__ant{fill:none;stroke:#0f1b2d;stroke-width:10;stroke-linecap:round}
+.fly-ring{position:fixed;left:0;top:0;width:60px;height:60px;border-radius:50%;border:3px solid;pointer-events:none;z-index:9998}
 
 @media (max-width:900px){
   .nav__links{display:none}
